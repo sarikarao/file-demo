@@ -20,6 +20,7 @@ dependencies {
 	testCompileOnly 'org.projectlombok:lombok:1.18.24'
 	testAnnotationProcessor 'org.projectlombok:lombok:1.18.24'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	implementation group: 'org.apache.pdfbox', name: 'pdfbox', version: '2.0.27'
 }
 
 tasks.named('test') {
