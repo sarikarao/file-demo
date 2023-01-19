@@ -1,5 +1,7 @@
 package com.example.filedemo.filedemo.controller;
 
+import com.example.filedemo.filedemo.model.RegisterForm;
+import com.example.filedemo.filedemo.model.StringResponse;
 import com.example.filedemo.filedemo.model.UploadFileResponse;
 import com.example.filedemo.filedemo.service.FileStorageService;
 import lombok.extern.slf4j.Slf4j;
@@ -63,7 +65,7 @@ public class FileController {
         }
 
         // Fallback to the default content type if type could not be determined
-        if(contentType == null) {
+        if (contentType == null) {
             contentType = "application/octet-stream";
         }
 
@@ -73,5 +75,27 @@ public class FileController {
                 .body(resource);
     }
 
+    @PostMapping(path = "/saveAsPdf", produces = MediaType.APPLICATION_JSON_VALUE)
+    @CrossOrigin(origins = {"http://localhost:4200", "*"})
+    public ResponseEntity<StringResponse> saveAsPdf(@RequestBody RegisterForm registerForm) {
+        String status = fileStorageService.saveAsPdf(registerForm);
+        return ResponseEntity.ok()
+                .body(StringResponse.builder().response(status).build());
+    }
+
+    @PostMapping("/uploadPdf")
+    @CrossOrigin(origins = {"http://localhost:4200", "*"})
+    public UploadFileResponse uploadPdf(@RequestParam("file") MultipartFile file, @RequestBody RegisterForm registerForm) {
+        String fileName = fileStorageService.storeFile(file);
+        log.info("Register form recieved which will be saved in db : {}", registerForm);
+
+        String fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/downloadFile/")
+                .path(fileName)
+                .toUriString();
+
+        return new UploadFileResponse(fileName, fileDownloadUri,
+                file.getContentType(), file.getSize());
+    }
 
 }

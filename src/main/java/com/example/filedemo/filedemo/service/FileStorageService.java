@@ -2,7 +2,13 @@ package com.example.filedemo.filedemo.service;
 
 import com.example.filedemo.filedemo.exception.FileStorageException;
 import com.example.filedemo.filedemo.exception.MyFileNotFoundException;
+import com.example.filedemo.filedemo.model.RegisterForm;
 import com.example.filedemo.filedemo.property.FileStorageProperties;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -18,6 +24,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
 @Service
+@Slf4j
 public class FileStorageService {
     private final Path fileStorageLocation;
 
@@ -39,7 +46,7 @@ public class FileStorageService {
 
         try {
             // Check if the file's name contains invalid characters
-            if(fileName.contains("..")) {
+            if (fileName.contains("..")) {
                 throw new FileStorageException("Sorry! Filename contains invalid path sequence " + fileName);
             }
 
@@ -57,13 +64,60 @@ public class FileStorageService {
         try {
             Path filePath = this.fileStorageLocation.resolve(fileName).normalize();
             Resource resource = new UrlResource(filePath.toUri());
-            if(resource.exists()) {
+            if (resource.exists()) {
                 return resource;
             } else {
                 throw new MyFileNotFoundException("File not found " + fileName);
             }
         } catch (MalformedURLException ex) {
             throw new MyFileNotFoundException("File not found " + fileName, ex);
+        }
+    }
+
+    public String saveAsPdf(RegisterForm registerForm) {
+        Path targetLocation = this.fileStorageLocation.resolve(registerForm.getCourse() + "_" +
+                registerForm.getStartDate() + "_" + registerForm.getEndDate() + "_" + registerForm.getUniversity() + ".pdf");
+
+        try (PDDocument doc = new PDDocument()) {
+
+            PDPage myPage = new PDPage();
+            doc.addPage(myPage);
+
+            try (PDPageContentStream cont = new PDPageContentStream(doc, myPage)) {
+
+                cont.beginText();
+
+                cont.setFont(PDType1Font.TIMES_ROMAN, 12);
+                cont.setLeading(14.5f);
+
+                cont.newLineAtOffset(25, 700);
+                String line1 = "Course Department : " + registerForm.getCourse();
+                cont.showText(line1);
+
+
+                cont.newLine();
+                String line2 = "Start Date : " + registerForm.getStartDate();
+                cont.showText(line2);
+                cont.newLine();
+
+                String line3 = "End Date : " + registerForm.getEndDate();
+                cont.showText(line3);
+                cont.newLine();
+
+                String line4 = "University : " + registerForm.getUniversity();
+                cont.showText(line4);
+                cont.newLine();
+
+                cont.endText();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            doc.save(targetLocation.toString());
+            log.info("File has saved successfully : {}", targetLocation.toString());
+            return "Success";
+        } catch (IOException e) {
+            log.error("Issue occurred while processing the request", e);
+            return "Failure";
         }
     }
 }
